@@ -1,0 +1,2 @@
+#!/bin/bash
+scp dist/*.whl root@101.200.217.213:/root/devops/cgohome_pypi/packages/

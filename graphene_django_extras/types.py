@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 from collections import OrderedDict
 
 from django.db.models import QuerySet
@@ -418,6 +419,15 @@ class DjangoSerializerType(ObjectType):
 
         django_fields = OrderedDict({output_field_name: Field(output_type)})
 
+        # derive mutation input fields from serializer_class
+        mutation_input_factory_kwargs = copy.copy(factory_kwargs)
+        serializer_class_fields = getattr(serializer_class.Meta, 'fields', None)
+        serializer_class_exclude = getattr(serializer_class.Meta, 'exclude', None)
+        if serializer_class_fields is not None and serializer_class_fields != '__all__':
+            mutation_input_factory_kwargs['only_fields'] = serializer_class_fields
+            mutation_input_factory_kwargs['include_fields'] = serializer_class_fields
+        if serializer_class_exclude is not None:
+            mutation_input_factory_kwargs['exclude_fields'] = serializer_class_exclude
         global_arguments = {}
         for operation in ("create", "delete", "update"):
             global_arguments.update({operation: OrderedDict()})
@@ -428,7 +438,7 @@ class DjangoSerializerType(ObjectType):
                 if not input_type:
                     # factory_kwargs.update({'skip_registry': True})
                     input_type = factory_type(
-                        "input", DjangoInputObjectType, operation, **factory_kwargs
+                        "input", DjangoInputObjectType, operation, **mutation_input_factory_kwargs
                     )
 
                 global_arguments[operation].update(
